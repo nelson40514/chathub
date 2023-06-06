@@ -3,20 +3,29 @@ import { ofetch } from 'ofetch'
 import { FC, useCallback, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import { BsQuestionCircle } from 'react-icons/bs'
 import useImmutableSWR from 'swr/immutable'
 import Button from '~app/components/Button'
+import Tooltip from '~app/components/Tooltip'
 import { usePremium } from '~app/hooks/use-premium'
 import { trackEvent } from '~app/plausible'
 import { licenseKeyAtom } from '~app/state'
 import checkIcon from '~assets/icons/check.svg'
 import { deactivateLicenseKey } from '~services/premium'
 
-const FeatureItem: FC<{ text: string; comingsoon?: boolean }> = ({ text, comingsoon }) => {
+const FeatureItem: FC<{ text: string; link?: string }> = ({ text, link }) => {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-row items-center gap-2">
       <img src={checkIcon} className="w-6 h-6" />
       <span className="text-primary-text font-medium">{text}</span>
-      {comingsoon && <span className="text-xs text-secondary-text">(Coming soon)</span>}
+      {!!link && (
+        <Tooltip content={t('Learn more')}>
+          <a href={link} target="_blank" rel="noreferrer">
+            <BsQuestionCircle className="cursor-pointer" />
+          </a>
+        </Tooltip>
+      )}
     </div>
   )
 }
@@ -73,7 +82,10 @@ function PremiumPage() {
         <FeatureItem text={t('More bots in All-In-One mode')} />
         <FeatureItem text={t('Chat history full-text search')} />
         <FeatureItem text={t('Customize theme')} />
-        <FeatureItem text={t('Quick access in Chrome side bar')} />
+        <FeatureItem
+          text={t('Quick access in Chrome side bar')}
+          link="https://github.com/chathub-dev/chathub/wiki/Access-from-Chrome-side-panel"
+        />
         <FeatureItem text={t('Activate up to 5 devices')} />
         <FeatureItem text={t('More features in the future')} />
         <FeatureItem text={t('Support the development of ChatHub')} />
@@ -81,9 +93,9 @@ function PremiumPage() {
       {premiumState.activated ? (
         <div className="flex flex-row items-center gap-3 mt-8">
           <a href="https://app.lemonsqueezy.com/my-orders/" target="_blank" rel="noreferrer">
-            <Button text={t('🎉 License activated')} color="primary" className="w-fit" />
+            <Button text={t('🎉 License activated')} color="primary" className="w-fit !py-2" />
           </a>
-          <Button text={t('Deactivate')} className="w-fit" onClick={deactivateLicense} isLoading={deactivating} />
+          <Button text={t('Deactivate')} className="w-fit !py-2" onClick={deactivateLicense} isLoading={deactivating} />
         </div>
       ) : (
         <div className="flex flex-row items-center gap-3 mt-8">
@@ -93,12 +105,12 @@ function PremiumPage() {
             rel="noreferrer"
             onClick={() => trackEvent('click_buy_premium')}
           >
-            <Button text={t('Get premium license')} color="primary" className="w-fit py-3 rounded-lg" />
+            <Button text={t('Get premium license')} color="primary" className="w-fit !py-2 rounded-lg" />
           </a>
           <Button
             text={t('Activate license')}
             color="flat"
-            className="w-fit py-3 rounded-lg"
+            className="w-fit !py-2 rounded-lg"
             onClick={activateLicense}
             isLoading={premiumState.isLoading}
           />

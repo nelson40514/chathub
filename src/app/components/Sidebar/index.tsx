@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import cx from 'classnames'
 import { useAtom } from 'jotai'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import allInOneIcon from '~/assets/all-in-one.svg'
 import collapseIcon from '~/assets/icons/collapse.svg'
 import feedbackIcon from '~/assets/icons/feedback.svg'
@@ -12,10 +14,11 @@ import { CHATBOTS } from '~app/consts'
 import { sidebarCollapsedAtom } from '~app/state'
 import CommandBar from '../CommandBar'
 import GuideModal from '../GuideModal'
+import ThemeSettingModal from '../ThemeSettingModal'
+import Tooltip from '../Tooltip'
 import NavLink from './NavLink'
 import PremiumEntry from './PremiumEntry'
-import ThemeSettingModal from '../ThemeSettingModal'
-import { useState } from 'react'
+import { useEnabledBots } from '~app/hooks/use-enabled-bots'
 
 function IconButton(props: { icon: string; onClick?: () => void }) {
   return (
@@ -29,8 +32,10 @@ function IconButton(props: { icon: string; onClick?: () => void }) {
 }
 
 function Sidebar() {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useAtom(sidebarCollapsedAtom)
   const [themeSettingModalOpen, setThemeSettingModalOpen] = useState(false)
+  const enabledBots = useEnabledBots()
   return (
     <aside
       className={cx(
@@ -46,7 +51,7 @@ function Sidebar() {
       {collapsed ? <img src={minimalLogo} className="w-[30px]" /> : <img src={logo} className="w-[79px]" />}
       <div className="flex flex-col gap-3 mt-12 overflow-y-auto scrollbar-none">
         <NavLink to="/" text={'All-In-One'} icon={allInOneIcon} iconOnly={collapsed} />
-        {Object.entries(CHATBOTS).map(([botId, bot]) => (
+        {enabledBots.map(({ botId, bot }) => (
           <NavLink
             key={botId}
             to="/chat/$botId"
@@ -61,17 +66,25 @@ function Sidebar() {
         {!collapsed && <hr className="border-[#ffffff4d]" />}
         {!collapsed && (
           <div className="my-5">
-            <PremiumEntry text="Premium" />
+            <PremiumEntry text={t('Premium')} />
           </div>
         )}
         <div className={cx('flex mt-5 gap-[10px] mb-4', collapsed ? 'flex-col' : 'flex-row ')}>
-          <a href="https://github.com/wong2/chathub/issues" target="_blank" rel="noreferrer" title="Feedback">
-            <IconButton icon={feedbackIcon} />
-          </a>
-          <Link to="/setting">
-            <IconButton icon={settingIcon} />
-          </Link>
-          <IconButton icon={themeIcon} onClick={() => setThemeSettingModalOpen(true)} />
+          <Tooltip content={t('Feedback')}>
+            <a href="https://github.com/wong2/chathub/issues" target="_blank" rel="noreferrer">
+              <IconButton icon={feedbackIcon} />
+            </a>
+          </Tooltip>
+          <Tooltip content={t('Settings')}>
+            <Link to="/setting">
+              <IconButton icon={settingIcon} />
+            </Link>
+          </Tooltip>
+          <Tooltip content={t('Theme')}>
+            <a onClick={() => setThemeSettingModalOpen(true)}>
+              <IconButton icon={themeIcon} />
+            </a>
+          </Tooltip>
         </div>
       </div>
       <CommandBar />
