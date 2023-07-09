@@ -1,22 +1,31 @@
+import { DEFAULT_CHATGPT_SYSTEM_MESSAGE } from '~app/consts'
 import { UserConfig } from '~services/user-config'
 import { ChatError, ErrorCode } from '~utils/errors'
 import { parseSSEResponse } from '~utils/sse'
 import { AbstractBot, SendMessageParams } from '../abstract-bot'
-import { CHATGPT_SYSTEM_MESSAGE, ChatMessage } from './consts'
+import { ChatMessage } from './consts'
 import { updateTokenUsage } from './usage'
 
 interface ConversationContext {
   messages: ChatMessage[]
 }
 
-const SYSTEM_MESSAGE: ChatMessage = { role: 'system', content: CHATGPT_SYSTEM_MESSAGE }
 const CONTEXT_SIZE = 10
 
 export abstract class AbstractChatGPTApiBot extends AbstractBot {
   private conversationContext?: ConversationContext
 
   buildMessages(): ChatMessage[] {
-    return [SYSTEM_MESSAGE, ...this.conversationContext!.messages.slice(-(CONTEXT_SIZE + 1))]
+    const currentDate = new Date().toISOString().split('T')[0]
+    const systemMessage = this.getSystemMessage().replace('{current_date}', currentDate)
+    return [
+      { role: 'system', content: systemMessage },
+      ...this.conversationContext!.messages.slice(-(CONTEXT_SIZE + 1)),
+    ]
+  }
+
+  getSystemMessage() {
+    return DEFAULT_CHATGPT_SYSTEM_MESSAGE
   }
 
   async doSendMessage(params: SendMessageParams) {
@@ -77,9 +86,16 @@ export abstract class AbstractChatGPTApiBot extends AbstractBot {
 
 export class ChatGPTApiBot extends AbstractChatGPTApiBot {
   constructor(
-    private config: Pick<UserConfig, 'openaiApiKey' | 'openaiApiHost' | 'chatgptApiModel' | 'chatgptApiTemperature'>,
+    private config: Pick<
+      UserConfig,
+      'openaiApiKey' | 'openaiApiHost' | 'chatgptApiModel' | 'chatgptApiTemperature' | 'chatgptApiSystemMessage'
+    >,
   ) {
     super()
+  }
+
+  getSystemMessage() {
+    return this.config.chatgptApiSystemMessage || DEFAULT_CHATGPT_SYSTEM_MESSAGE
   }
 
   async fetchCompletionApi(signal?: AbortSignal) {
@@ -92,7 +108,7 @@ export class ChatGPTApiBot extends AbstractChatGPTApiBot {
         Authorization: `Bearer ${openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: chatgptApiModel,
+        model: this.getModelName(),
         messages: this.buildMessages(),
         stream: true,
       }),
@@ -100,7 +116,27 @@ export class ChatGPTApiBot extends AbstractChatGPTApiBot {
     if (!resp.ok && resp.status === 404 && chatgptApiModel.includes('gpt-4')) {
       throw new ChatError(`You don't have API access to ${chatgptApiModel} model`, ErrorCode.GPT4_MODEL_WAITLIST)
     }
+    if (!resp.ok) {
+      const error = await resp.text()
+      if (error.includes('insufficient_quota')) {
+        throw new ChatError('Insufficient ChatGPT API usage quota', ErrorCode.CHATGPT_INSUFFICIENT_QUOTA)
+      }
+    }
     return resp
+  }
+
+  private getModelName() {
+    const { chatgptApiModel } = this.config
+    if (chatgptApiModel === 'gpt-3.5-turbo') {
+      return 'gpt-3.5-turbo-0613'
+    }
+    if (chatgptApiModel === 'gpt-4') {
+      return 'gpt-4-0613'
+    }
+    if (chatgptApiModel === 'gpt-4-32k') {
+      return 'gpt-4-32k-0613'
+    }
+    return chatgptApiModel
   }
 
   get name() {

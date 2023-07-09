@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useAtom } from 'jotai'
 import { ofetch } from 'ofetch'
 import { FC, useCallback, useState } from 'react'
@@ -62,7 +63,7 @@ function PremiumPage() {
   }, [licenseKey, setLicenseKey])
 
   return (
-    <div className="flex flex-col overflow-hidden bg-primary-background dark:text-primary-text rounded-[20px] h-full p-[50px]">
+    <div className="flex flex-col bg-primary-background dark:text-primary-text rounded-[20px] h-full p-[50px] overflow-y-auto">
       <h1 className="font-bold text-[40px] leading-none text-primary-text">{t('Premium')}</h1>
       {!premiumState.activated && (
         <p className="bg-[#FAE387] text-[#303030] w-fit rounded-[5px] px-2 py-[4px] text-sm font-semibold mt-9">
@@ -91,12 +92,25 @@ function PremiumPage() {
         <FeatureItem text={t('Support the development of ChatHub')} />
       </div>
       {premiumState.activated ? (
-        <div className="flex flex-row items-center gap-3 mt-8">
-          <a href="https://app.lemonsqueezy.com/my-orders/" target="_blank" rel="noreferrer">
+        <>
+          <div className="flex flex-row items-center gap-3 mt-8">
             <Button text={t('🎉 License activated')} color="primary" className="w-fit !py-2" />
+            <Button
+              text={t('Deactivate')}
+              className="w-fit !py-2"
+              onClick={deactivateLicense}
+              isLoading={deactivating}
+            />
+          </div>
+          <a
+            href="https://app.lemonsqueezy.com/my-orders/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline mt-5 text-sm text-secondary-text font-medium w-fit"
+          >
+            {t('Manage order and devices')}
           </a>
-          <Button text={t('Deactivate')} className="w-fit !py-2" onClick={deactivateLicense} isLoading={deactivating} />
-        </div>
+        </>
       ) : (
         <div className="flex flex-row items-center gap-3 mt-8">
           <a

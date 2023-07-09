@@ -1,7 +1,9 @@
 import { v4 as uuidv4 } from 'uuid'
 import { ChatGPTWebModel } from '~services/user-config'
+import { ChatError, ErrorCode } from '~utils/errors'
 import { parseSSEResponse } from '~utils/sse'
 import { AbstractBot, SendMessageParams } from '../abstract-bot'
+import { fetchArkoseToken } from './arkose'
 import { chatGPTClient } from './client'
 import { ResponseContent } from './types'
 
@@ -26,15 +28,6 @@ export class ChatGPTWebBot extends AbstractBot {
     if (this.model === ChatGPTWebModel['GPT-4']) {
       return 'gpt-4'
     }
-    if (this.model === ChatGPTWebModel['GPT-4 Browsing']) {
-      return 'gpt-4-browsing'
-    }
-    if (this.model === ChatGPTWebModel['GPT-3.5 (Mobile)']) {
-      return 'text-davinci-002-render-sha-mobile'
-    }
-    if (this.model === ChatGPTWebModel['GPT-4 (Mobile)']) {
-      return 'gpt-4-mobile'
-    }
     return 'text-davinci-002-render-sha'
   }
 
@@ -44,6 +37,11 @@ export class ChatGPTWebBot extends AbstractBot {
     }
     const modelName = await this.getModelName()
     console.debug('Using model:', modelName)
+
+    let arkoseToken: string | undefined
+    if (modelName.startsWith('gpt-4')) {
+      arkoseToken = await fetchArkoseToken()
+    }
 
     const resp = await chatGPTClient.fetch('https://chat.openai.com/backend-api/conversation', {
       method: 'POST',
@@ -67,6 +65,7 @@ export class ChatGPTWebBot extends AbstractBot {
         model: modelName,
         conversation_id: this.conversationContext?.conversationId || undefined,
         parent_message_id: this.conversationContext?.lastMessageId || uuidv4(),
+        arkose_token: arkoseToken,
       }),
     })
 
@@ -106,6 +105,11 @@ export class ChatGPTWebBot extends AbstractBot {
           data: { text },
         })
       }
+    }).catch((err: Error) => {
+      if (err.message.includes('token_expired')) {
+        throw new ChatError(err.message, ErrorCode.CHATGPT_AUTH)
+      }
+      throw err
     })
   }
 
