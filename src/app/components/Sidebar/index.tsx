@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import cx from 'classnames'
+import { motion } from 'framer-motion'
+import { cx } from '~/utils'
 import { useAtom } from 'jotai'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,19 +38,22 @@ function Sidebar() {
   const [themeSettingModalOpen, setThemeSettingModalOpen] = useState(false)
   const enabledBots = useEnabledBots()
   return (
-    <aside
+    <motion.aside
       className={cx(
         'flex flex-col bg-primary-background bg-opacity-40 overflow-hidden',
         collapsed ? 'items-center px-[15px]' : 'w-[230px] px-4',
       )}
     >
-      <img
+      <motion.img
         src={collapseIcon}
-        className={cx('w-6 h-6 cursor-pointer my-5', collapsed ? 'rotate-180' : 'self-end')}
+        className={cx('w-6 h-6 cursor-pointer my-5', !collapsed && 'self-end')}
+        animate={{
+          rotate: collapsed ? 180 : 0,
+        }}
         onClick={() => setCollapsed((c) => !c)}
       />
       {collapsed ? <img src={minimalLogo} className="w-[30px]" /> : <img src={logo} className="w-[79px]" />}
-      <div className="flex flex-col gap-3 mt-12 overflow-y-auto scrollbar-none">
+      <div className="flex flex-col gap-[13px] mt-12 overflow-y-auto scrollbar-none">
         <NavLink to="/" text={'All-In-One'} icon={allInOneIcon} iconOnly={collapsed} />
         {enabledBots.map(({ botId, bot }) => (
           <NavLink
@@ -85,7 +89,7 @@ function Sidebar() {
             </Tooltip>
           )}
           {!collapsed && (
-            <Tooltip content={t('Theme')}>
+            <Tooltip content={t('Display')}>
               <a onClick={() => setThemeSettingModalOpen(true)}>
                 <IconButton icon={themeIcon} />
               </a>
@@ -101,7 +105,7 @@ function Sidebar() {
       <CommandBar />
       <GuideModal />
       {themeSettingModalOpen && <ThemeSettingModal open={true} onClose={() => setThemeSettingModalOpen(false)} />}
-    </aside>
+    </motion.aside>
   )
 }
 

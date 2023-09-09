@@ -1,9 +1,10 @@
+import { get as getPath } from 'lodash-es'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatGPTWebModel } from '~services/user-config'
 import { ChatError, ErrorCode } from '~utils/errors'
 import { parseSSEResponse } from '~utils/sse'
 import { AbstractBot, SendMessageParams } from '../abstract-bot'
-import { fetchArkoseToken } from './arkose'
+import { getArkoseToken } from './arkose'
 import { chatGPTClient } from './client'
 import { ResponseContent } from './types'
 
@@ -40,7 +41,7 @@ export class ChatGPTWebBot extends AbstractBot {
 
     let arkoseToken: string | undefined
     if (modelName.startsWith('gpt-4')) {
-      arkoseToken = await fetchArkoseToken()
+      arkoseToken = await getArkoseToken()
     }
 
     const resp = await chatGPTClient.fetch('https://chat.openai.com/backend-api/conversation', {
@@ -69,6 +70,8 @@ export class ChatGPTWebBot extends AbstractBot {
       }),
     })
 
+    const isFirstMessage = !this.conversationContext
+
     await parseSSEResponse(resp, (message) => {
       console.debug('chatgpt sse message', message)
       if (message === '[DONE]') {
@@ -80,6 +83,9 @@ export class ChatGPTWebBot extends AbstractBot {
         data = JSON.parse(message)
       } catch (err) {
         console.error(err)
+        return
+      }
+      if (getPath(data, 'message.author.role') !== 'assistant') {
         return
       }
       const content = data.message?.content as ResponseContent | undefined
@@ -111,6 +117,12 @@ export class ChatGPTWebBot extends AbstractBot {
       }
       throw err
     })
+
+    // auto generate title on first response
+    if (isFirstMessage && this.conversationContext) {
+      const c = this.conversationContext
+      chatGPTClient.generateChatTitle(this.accessToken, c.conversationId, c.lastMessageId)
+    }
   }
 
   resetConversation() {

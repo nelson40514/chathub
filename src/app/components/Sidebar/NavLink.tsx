@@ -1,12 +1,12 @@
 import { Link, LinkPropsOptions } from '@tanstack/react-router'
-import cx from 'classnames'
+import { cx } from '~/utils'
 
 function NavLink(props: LinkPropsOptions & { text: string; icon: any; iconOnly?: boolean }) {
   const { text, icon, iconOnly, ...linkProps } = props
   return (
     <Link
       className={cx(
-        'rounded-[10px] w-full h-[45px] pl-3 flex flex-row gap-3 items-center shrink-0',
+        'rounded-[10px] w-full pl-3 flex flex-row gap-3 items-center shrink-0 py-[11px]',
         iconOnly && 'justify-center',
       )}
       activeOptions={{ exact: true }}

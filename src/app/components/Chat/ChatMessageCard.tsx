@@ -1,4 +1,4 @@
-import cx from 'classnames'
+import { cx } from '~/utils'
 import { FC, memo, useEffect, useMemo, useState } from 'react'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { IoCheckmarkSharp, IoCopyOutline } from 'react-icons/io5'
@@ -17,6 +17,10 @@ interface Props {
 
 const ChatMessageCard: FC<Props> = ({ message, className }) => {
   const [copied, setCopied] = useState(false)
+
+  const imageUrl = useMemo(() => {
+    return message.image ? URL.createObjectURL(message.image) : ''
+  }, [message.image])
 
   const copyText = useMemo(() => {
     if (message.text) {
@@ -39,6 +43,7 @@ const ChatMessageCard: FC<Props> = ({ message, className }) => {
     >
       <div className="flex flex-col w-11/12  max-w-fit items-start gap-2">
         <MessageBubble color={message.author === 'user' ? 'primary' : 'flat'}>
+          {!!imageUrl && <img src={imageUrl} className="max-w-xs my-2" />}
           {message.text ? (
             <Markdown>{message.text}</Markdown>
           ) : (
